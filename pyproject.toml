@@ -49,6 +49,21 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/agentic_core"]
 
+[tool.hatch.build.targets.sdist]
+only-include = [
+  "src",
+  "tests",
+  "docs",
+  "configs",
+  "policies",
+  "README.md",
+  "LICENSE",
+  "CHANGELOG.md",
+  "SECURITY.md",
+  "pyproject.toml",
+  "uv.lock",
+]
+
 [tool.black]
 line-length = 100
 target-version = ["py312"]

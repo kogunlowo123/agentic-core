@@ -15,7 +15,7 @@ typecheck:
 	uv run mypy
 
 security:
-	uv run bandit -q -r src -c pyproject.toml
+	uv run python -m bandit -q -r src -c pyproject.toml
 
 test:
 	uv run pytest
