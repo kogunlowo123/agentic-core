@@ -15,6 +15,7 @@ from agentic_core.models.factory import (
     expand_env,
 )
 from agentic_core.policy import PolicyEngine, PolicyRequest, PolicySet, Resource, Subject
+from agentic_core.security import SecretScanner
 
 ROOT = Path(__file__).resolve().parents[2]
 PROVIDERS = ROOT / "configs" / "providers.yaml"
@@ -86,6 +87,18 @@ def test_no_placeholders_in_committed_files() -> None:
         if p.is_file()
         and p.suffix in {".yaml", ".yml", ".md", ".py"}
         and pattern.search(p.read_text(encoding="utf-8"))
+    ]
+    assert offenders == []
+
+
+def test_no_credentials_in_committed_files() -> None:
+    scanner = SecretScanner()
+    offenders = [
+        f"{p.relative_to(ROOT)}:{f.kind}"
+        for folder in ("configs", "policies", "docs", "src", ".github")
+        for p in (ROOT / folder).rglob("*")
+        if p.is_file() and p.suffix in {".yaml", ".yml", ".md", ".py", ".toml"}
+        for f in scanner.detect(p.read_text(encoding="utf-8"))
     ]
     assert offenders == []
 

@@ -126,6 +126,27 @@ class TestSecrets:
     def test_detects(self, text: str, kind: str) -> None:
         assert kind in {f.kind for f in SecretScanner().detect(text)}
 
+    @pytest.mark.parametrize(
+        "code",
+        [
+            "token = _correlation.set(cid)",
+            "api_key=_secret(spec.api_key_env, env, name)",
+            "access_token: issuer.mint_short_lived(agent, ttl=300)",
+        ],
+    )
+    def test_code_expressions_not_flagged(self, code: str) -> None:
+        assert not SecretScanner().detect(code)
+
+    @pytest.mark.parametrize(
+        "assignment",
+        [
+            "API_KEY=Zx9kQ2mW8vR4tLp7Yb3a",
+            'token: "f(9Kq2mW8vR4tLp7Yb3aZ"',
+        ],
+    )
+    def test_env_and_quoted_values_still_flagged(self, assignment: str) -> None:
+        assert [f.kind for f in SecretScanner().detect(assignment)] == ["generic_secret"]
+
     def test_low_entropy_assignment_ignored(self) -> None:
         assert not SecretScanner().detect("password = 'aaaaaaaaaaaaaaaaaaaa'")
 

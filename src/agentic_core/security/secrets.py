@@ -27,8 +27,9 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 
 _ASSIGNMENT = re.compile(
     r"(?i)\b(?:api[_-]?key|secret|token|passw(?:or)?d|client[_-]?secret|access[_-]?key)"
-    r"\s*[:=]\s*['\"]?([^\s'\",;]{16,256})['\"]?"
+    r"\s*[:=]\s*(['\"]?)([^\s'\",;]{16,256})"
 )
+_CODE_EXPRESSION = re.compile(r"[\w.\[\]]*\(")
 
 
 def shannon_entropy(value: str) -> float:
@@ -51,10 +52,14 @@ class SecretScanner:
                 for m in pattern.finditer(text)
             )
         for m in _ASSIGNMENT.finditer(text):
-            if shannon_entropy(m.group(1)) >= self._entropy_threshold:
+            quoted, value = m.group(1), m.group(2)
+            # An unquoted call expression (token = issuer.mint(...)) is code, not a credential.
+            if not quoted and _CODE_EXPRESSION.match(value):
+                continue
+            if shannon_entropy(value) >= self._entropy_threshold:
                 findings.append(
                     Finding(
-                        category="secret", kind="generic_secret", start=m.start(1), end=m.end(1)
+                        category="secret", kind="generic_secret", start=m.start(2), end=m.end(2)
                     )
                 )
         return findings
