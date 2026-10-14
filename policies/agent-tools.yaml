@@ -1,0 +1,50 @@
+# Baseline ABAC policy for agent tool calls. Evaluation: deny overrides, then
+# require_approval, then allow; anything unmatched is denied.
+# risk: 1=LOW 2=MODERATE 3=HIGH 4=CRITICAL
+# resource.classification: 0=PUBLIC 1=INTERNAL 2=CONFIDENTIAL 3=RESTRICTED
+name: agent-tools
+version: "2026.10.0"
+rules:
+  - id: deny-revoked-agents
+    description: Revoked or suspended identities can do nothing.
+    effect: deny
+    actions: ["*"]
+    conditions:
+      - {attribute: subject.status, operator: in, value: [revoked, suspended]}
+
+  - id: deny-restricted-without-purpose
+    description: Restricted data needs a declared purpose of use.
+    effect: deny
+    actions: ["tool:*"]
+    conditions:
+      - {attribute: resource.classification, operator: gte, value: 3}
+      - {attribute: environment.purpose_of_use, operator: exists, value: false}
+
+  - id: approve-critical-actions
+    description: Critical-risk actions always need a human approver.
+    effect: require_approval
+    actions: ["tool:*"]
+    conditions:
+      - {attribute: risk, operator: gte, value: 4}
+
+  - id: approve-writes-high-risk
+    effect: require_approval
+    actions: ["tool:*.write", "tool:*.delete"]
+    conditions:
+      - {attribute: risk, operator: gte, value: 3}
+
+  - id: allow-read-tools-in-scope
+    description: Agents may call read tools listed in their delegated scope.
+    effect: allow
+    actions: ["tool:*.read", "tool:*.search"]
+    conditions:
+      - {attribute: subject.status, operator: eq, value: active}
+      - {attribute: subject.scopes, operator: contains_any, value: ["tools:read"]}
+
+  - id: allow-write-tools-in-scope
+    effect: allow
+    actions: ["tool:*.write"]
+    conditions:
+      - {attribute: subject.status, operator: eq, value: active}
+      - {attribute: subject.scopes, operator: contains, value: "tools:write"}
+
