@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v10.3.0
       - run: uv sync --all-extras
       - name: Full quality gate
         run: |
@@ -29,13 +29,13 @@ jobs:
           test "v${version}" = "${GITHUB_REF_NAME}"
       - run: uv build
       - name: SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.24.3
         with:
           path: .
           format: cyclonedx-json
           output-file: dist/sbom.cdx.json
       - name: Build provenance attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4.2.2
         with:
           subject-path: dist/*
       - name: GitHub release
